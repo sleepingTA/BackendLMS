@@ -1,0 +1,17 @@
+node_modules/
+npm-debug.log*
+
+logs/
+*.log
+*.log.*
+.env
+.env.*
+
+.vscode/
+.idea/
+*.iml
+*.jpg
+*.jpeg
+*.png
+*.mp4 
+*.json
