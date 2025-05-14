@@ -3,8 +3,8 @@ const router = express.Router();
 const EnrollmentController = require('../controllers/enrollment.controller');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth.middleware');
 
-router.get('/', authMiddleware, EnrollmentController.getUserEnrollments);
-router.get('/:courseId', authMiddleware, EnrollmentController.checkEnrollment);
-router.delete('/:enrollmentId', authMiddleware, EnrollmentController.deleteEnrollment);
+router.get('/enrollments', authMiddleware, EnrollmentController.getUserEnrollments);
+router.get('/courses/:courseId/enrollment', authMiddleware, EnrollmentController.checkEnrollment);
+router.delete('/enrollments/:enrollmentId', authMiddleware, EnrollmentController.deleteEnrollment);
 
 module.exports = router;

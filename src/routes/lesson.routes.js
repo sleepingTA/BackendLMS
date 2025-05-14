@@ -5,29 +5,31 @@ const { authMiddleware, roleMiddleware } = require('../middleware/auth.middlewar
 const upload = require('../config/multer');
 const handleMulterError = require('../middleware/multerErrorHandler');
 
-router.get('/course/:courseId', authMiddleware, LessonController.getLessonsByCourse);
-router.get('/:lessonId', authMiddleware, LessonController.getLessonDetails);
+// Bài học
+router.get('/courses/:courseId/lessons', authMiddleware, LessonController.getLessonsByCourse);
+router.get('/lessons/:lessonId', authMiddleware, LessonController.getLessonDetails);
 router.post(
-  '/:courseId',
+  '/courses/:courseId/lessons',
   authMiddleware,
   roleMiddleware(['Admin']),
   LessonController.createLesson
 );
 router.put(
-  '/:lessonId',
+  '/lessons/:lessonId',
   authMiddleware,
   roleMiddleware(['Admin']),
   LessonController.updateLesson
 );
 router.delete(
-  '/:lessonId',
+  '/lessons/:lessonId',
   authMiddleware,
   roleMiddleware(['Admin']),
   LessonController.deleteLesson
 );
 
+// Video
 router.post(
-  '/:lessonId/videos',
+  '/lessons/:lessonId/videos',
   authMiddleware,
   roleMiddleware(['Admin']),
   upload.single('video'),
@@ -49,8 +51,9 @@ router.delete(
   LessonController.deleteVideo
 );
 
+// Tài liệu
 router.post(
-  '/:lessonId/materials',
+  '/lessons/:lessonId/materials',
   authMiddleware,
   roleMiddleware(['Admin']),
   upload.single('material'),

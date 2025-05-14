@@ -6,9 +6,8 @@ const upload = require('../config/multer');
 const handleMulterError = require('../middleware/multerErrorHandler');
 
 router.get('/', CourseController.getAllCourses);
-router.get('/:courseId', CourseController.getCourseById);
-router.get('/:courseId/with-lessons-and-content', authMiddleware, CourseController.getCourseWithLessonsAndContent);
-
+router.get('/:id', CourseController.getCourseById);
+router.get('/:id/details', authMiddleware, CourseController.getCourseWithLessonsAndContent);
 router.post(
   '/',
   authMiddleware,
@@ -17,16 +16,14 @@ router.post(
   handleMulterError,
   CourseController.createCourse
 );
-
 router.put(
-  '/:courseId',
+  '/:id',
   authMiddleware,
   roleMiddleware(['Admin']),
   upload.single('thumbnail'),
   handleMulterError,
   CourseController.updateCourse
 );
-
-router.delete('/:courseId', authMiddleware, roleMiddleware(['Admin']), CourseController.deleteCourse);
+router.delete('/:id', authMiddleware, roleMiddleware(['Admin']), CourseController.deleteCourse);
 
 module.exports = router;
