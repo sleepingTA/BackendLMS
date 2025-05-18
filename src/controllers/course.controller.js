@@ -1,5 +1,3 @@
-
-const LessonModel = require('../models/lesson.model');
 const CourseModel = require('../models/course.model');
 
 const CourseController = {
@@ -8,31 +6,40 @@ const CourseController = {
       const courses = await CourseModel.getAllCourses();
       return res.status(200).json(courses);
     } catch (error) {
-      return res.status(500).json({ message: error.message });
+      console.error('Error in getAllCourses:', error.message);
+      return res.status(500).json({ success: false, message: 'Lỗi server khi lấy danh sách khóa học' });
     }
   },
 
-  // Lấy khóa học theo ID
   getCourseById: async (req, res) => {
     try {
-      const { courseId } = req.params;
-      const course = await CourseModel.findCourseById(courseId);
-      if (!course) {
-        return res.status(404).json({ message: "Khóa học không tồn tại" });
+      const { id } = req.params; // Sửa courseId thành id để khớp với route :id
+      console.log(`Received id: ${id}, Type: ${typeof id}`);
+      if (!id || typeof id !== 'string' || isNaN(Number(id))) {
+        return res.status(400).json({ success: false, message: 'ID khóa học không hợp lệ' });
       }
-      return res.status(200).json(course);
+      const course = await CourseModel.findCourseById(id);
+      if (!course) {
+        console.log(`Course with id ${id} not found`);
+        return res.status(404).json({ success: false, message: `Khóa học với ID ${id} không tồn tại` });
+      }
+      console.log(`Found course: ${JSON.stringify(course)}`);
+      return res.status(200).json({ success: true, data: course });
     } catch (error) {
-      return res.status(500).json({ message: error.message });
+      console.error(`Error in getCourseById: ${error.message}`);
+      return res.status(500).json({ success: false, message: error.message });
     }
   },
 
-  // Lấy chi tiết khóa học kèm bài học và nội dung
   getCourseDetails: async (req, res) => {
     try {
       const { courseId } = req.params;
+      if (!courseId || isNaN(Number(courseId))) {
+        return res.status(400).json({ success: false, message: 'ID khóa học không hợp lệ' });
+      }
       const course = await CourseModel.getCourseWithLessonsAndContent(courseId);
       if (!course) {
-        return res.status(404).json({ message: "Khóa học không tồn tại" });
+        return res.status(404).json({ message: 'Khóa học không tồn tại' });
       }
       await CourseModel.incrementViews(courseId);
       return res.status(200).json(course);
@@ -41,13 +48,15 @@ const CourseController = {
     }
   },
 
-  // Tạo khóa học mới
   createCourse: async (req, res) => {
     try {
-      const { title, description, category_id, price, discount_percentage, thumbnail_url, is_active } = req.body;
+      const { title, description, category_id, price, discount_percentage, is_active } = req.body;
       if (!title || !category_id || !price) {
-        return res.status(400).json({ message: "Thiếu tiêu đề, danh mục hoặc giá" });
+        return res.status(400).json({ message: 'Thiếu tiêu đề, danh mục hoặc giá' });
       }
+
+      const thumbnail_url = req.file ? `/uploads/thumbnails/${req.file.filename}` : null;
+
       const courseData = {
         title,
         description,
@@ -58,25 +67,29 @@ const CourseController = {
         thumbnail_url,
         is_active: is_active !== undefined ? is_active : true,
       };
+
       const result = await CourseModel.createCourse(courseData);
-      return res.status(201).json({ message: "Tạo khóa học thành công", courseId: result.insertId });
+      return res.status(201).json({ message: 'Tạo khóa học thành công', courseId: result.insertId });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
   },
 
-  // Cập nhật khóa học
   updateCourse: async (req, res) => {
     try {
       const { courseId } = req.params;
-      const { title, description, category_id, price, discount_percentage, thumbnail_url, is_active } = req.body;
+      const { title, description, category_id, price, discount_percentage, is_active } = req.body;
+
       const course = await CourseModel.findCourseById(courseId);
       if (!course) {
-        return res.status(404).json({ message: "Khóa học không tồn tại" });
+        return res.status(404).json({ message: 'Khóa học không tồn tại' });
       }
-      if (course.created_by !== req.user.userId && req.user.role !== "Admin") {
-        return res.status(403).json({ message: "Không có quyền cập nhật" });
+      if (course.created_by !== req.user.userId && req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Không có quyền cập nhật' });
       }
+
+      const thumbnail_url = req.file ? `/uploads/thumbnails/${req.file.filename}` : course.thumbnail_url;
+
       const courseData = {
         title,
         description,
@@ -86,32 +99,32 @@ const CourseController = {
         thumbnail_url,
         is_active: is_active !== undefined ? is_active : true,
       };
+
       const success = await CourseModel.updateCourse(courseId, courseData);
       if (!success) {
-        return res.status(400).json({ message: "Cập nhật thất bại" });
+        return res.status(400).json({ message: 'Cập nhật thất bại' });
       }
-      return res.status(200).json({ message: "Cập nhật khóa học thành công" });
+      return res.status(200).json({ message: 'Cập nhật khóa học thành công' });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
   },
 
-  // Xóa khóa học
   deleteCourse: async (req, res) => {
     try {
       const { courseId } = req.params;
       const course = await CourseModel.findCourseById(courseId);
       if (!course) {
-        return res.status(404).json({ message: "Khóa học không tồn tại" });
+        return res.status(404).json({ message: 'Khóa học không tồn tại' });
       }
-      if (course.created_by !== req.user.userId && req.user.role !== "Admin") {
-        return res.status(403).json({ message: "Không có quyền xóa" });
+      if (course.created_by !== req.user.userId && req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Không có quyền xóa' });
       }
       const success = await CourseModel.deleteCourseById(courseId);
       if (!success) {
-        return res.status(400).json({ message: "Xóa thất bại" });
+        return res.status(400).json({ message: 'Xóa thất bại' });
       }
-      return res.status(200).json({ message: "Xóa khóa học thành công" });
+      return res.status(200).json({ message: 'Xóa khóa học thành công' });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
@@ -120,6 +133,9 @@ const CourseController = {
   getCourseWithLessonsAndContent: async (req, res) => {
     try {
       const { id } = req.params;
+      if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ success: false, message: 'ID khóa học không hợp lệ' });
+      }
       const course = await CourseModel.getCourseWithLessonsAndContent(id);
       if (!course) {
         return res.status(404).json({ success: false, message: `Khóa học với ID ${id} không tồn tại` });

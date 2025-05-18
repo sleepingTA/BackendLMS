@@ -3,10 +3,16 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
+const fs = require('fs');
+const path = require('path');
+const avatarDir = path.join(__dirname, 'uploads/avatars');
+if (!fs.existsSync(avatarDir)) {
+  fs.mkdirSync(avatarDir, { recursive: true });
+}
 app.use('/uploads', express.static('uploads'));
 app.use(cors({
     origin: ['http://localhost:5173'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE','PATCH'],
     credentials: true
 }));
 app.use(express.json());

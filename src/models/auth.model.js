@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const EmailService = require('../services/email.service');
+const admin = require('../config/firebase'); // Import Firebase Admin SDK1
 
 const AuthModel = {
   // Đăng ký người dùng mới
@@ -143,7 +144,51 @@ const AuthModel = {
       throw new Error(`Lỗi khi đặt lại mật khẩu: ${error.message}`);
     }
   },
+googleLogin: async (idToken) => {
+    try {
+      // Xác thực token từ Firebase
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const email = decodedToken.email;
+      const full_name = decodedToken.name || 'Google User';
 
+     
+      const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+      let user;
+
+      if (rows.length === 0) {
+        const [result] = await db.execute(
+          'INSERT INTO users (email, full_name, role, email_verified, is_active) VALUES (?, ?, ?, ?, ?)',
+          [email, full_name, 'User', true, 1] 
+        );
+        user = { id: result.insertId, email, full_name, role: 'User' };
+      } else {
+        user = rows[0];
+        if (!user.is_active) {
+          throw new Error('Tài khoản của bạn đã bị khóa');
+        }
+      }
+
+    
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      const refreshToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Lưu refreshToken vào database
+      await db.execute('UPDATE users SET refresh_token = ? WHERE id = ?', [refreshToken, user.id]);
+
+      return { accessToken, refreshToken, user };
+    } catch (error) {
+      throw new Error('Xác thực Google thất bại: ' + error.message);
+    }
+  },
+  
   // Đăng xuất
   logout: async (userId) => {
     try {
@@ -152,6 +197,38 @@ const AuthModel = {
       throw new Error(`Lỗi khi đăng xuất: ${error.message}`);
     }
   },
+  resendVerificationEmail: async (email) => {
+    try {
+      
+      const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+      if (!rows.length) {
+        throw new Error('Email không tồn tại');
+      }
+      const user = rows[0];
+
+      if (user.email_verified) {
+        throw new Error('Email đã được xác thực');
+      }
+
+      // Tạo token xác thực mới
+      const verificationToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '24h' });
+
+      
+      await db.execute(
+        'UPDATE users SET verification_token = ? WHERE email = ?',
+        [verificationToken, email]
+      );
+
+    
+      await EmailService.sendVerificationEmail(email, verificationToken);
+
+      return true;
+    } catch (error) {
+      throw new Error(`Lỗi khi gửi lại email xác thực: ${error.message}`);
+    }
+  },
 };
+
+  
 
 module.exports = AuthModel;

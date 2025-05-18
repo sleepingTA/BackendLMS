@@ -12,13 +12,19 @@ const CourseModel = {
     }
   },
 
-  // Tìm khóa học theo ID
   findCourseById: async (courseId) => {
     try {
+      const id = Number(courseId); // Chuyển đổi sang số nguyên
+      if (isNaN(id)) {
+        throw new Error("ID không hợp lệ");
+      }
       const query = `SELECT * FROM courses WHERE id = ?`;
-      const [rows] = await db.query(query, [courseId]);
+      console.log(`Querying course with id: ${id}`); // Log để debug
+      const [rows] = await db.query(query, [id]);
+      console.log(`Query result: ${JSON.stringify(rows)}`); // Log kết quả
       return rows[0] || null;
     } catch (error) {
+      console.error(`Error finding course by ID ${courseId}: ${error.message}`);
       throw new Error(`Error finding course by ID: ${error.message}`);
     }
   },

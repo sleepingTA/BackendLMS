@@ -21,7 +21,7 @@ const LessonModel = {
       const [lessons] = await db.query(
         `
         SELECT l.*, 
-            (SELECT COUNT(*) FROM course_videos WHERE lesson_id = l.id) as video_count,
+            (SELECT COUNT(*) FROM videos WHERE lesson_id = l.id) as video_count,
             (SELECT COUNT(*) FROM materials WHERE lesson_id = l.id) as material_count
         FROM lessons l 
         WHERE l.course_id = ? 
@@ -52,7 +52,7 @@ const LessonModel = {
 
       const [videos] = await db.query(
         `
-        SELECT * FROM course_videos 
+        SELECT * FROM videos 
         WHERE lesson_id = ? 
         ORDER BY order_number
         `,
@@ -95,7 +95,7 @@ const LessonModel = {
   // Xóa bài học
   deleteLesson: async (lessonId) => {
     try {
-      await db.query(`DELETE FROM course_videos WHERE lesson_id = ?`, [lessonId]);
+      await db.query(`DELETE FROM videos WHERE lesson_id = ?`, [lessonId]);
       await db.query(`DELETE FROM materials WHERE lesson_id = ?`, [lessonId]);
       const [result] = await db.query(`DELETE FROM lessons WHERE id = ?`, [lessonId]);
       return result.affectedRows > 0;
@@ -109,7 +109,7 @@ const LessonModel = {
     try {
       const { lesson_id, title, description, video_url, order_number, duration, is_preview } = videoData;
       const [result] = await db.query(
-        `INSERT INTO course_videos (lesson_id, title, description, video_url, order_number, duration, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO videos (lesson_id, title, description, video_url, order_number, duration, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [lesson_id, title, description, video_url, order_number, duration, is_preview]
       );
       return result.insertId;
@@ -163,7 +163,7 @@ const LessonModel = {
   // Xóa video
   deleteVideo: async (videoId) => {
     try {
-      const [result] = await db.query(`DELETE FROM course_videos WHERE id = ?`, [videoId]);
+      const [result] = await db.query(`DELETE FROM videos WHERE id = ?`, [videoId]);
       return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Error deleting video: ${error.message}`);

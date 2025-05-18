@@ -7,7 +7,7 @@ router.get('/', authMiddleware, roleMiddleware(['Admin']), UserController.getAll
 router.get('/:id', authMiddleware, UserController.getUserById);
 router.post('/', authMiddleware, roleMiddleware(['Admin']), UserController.createUser);
 router.put('/:id', authMiddleware, UserController.updateUser);
-router.patch('/:id/avatar', authMiddleware, UserController.updateAvatar);
+router.patch('/:id/avatar', authMiddleware, UserController.updateAvatar); // Sử dụng PATCH
 router.delete('/:id', authMiddleware, roleMiddleware(['Admin']), UserController.deleteUser);
 router.post('/verify-email', UserController.verifyEmail);
 
