@@ -4,6 +4,7 @@ const CartModel = {
   // Tìm giỏ hàng theo user_id
   findCartByUserId: async (userId) => {
     try {
+      console.log('Finding cart for userId:', userId); // Log để debug
       const query = `SELECT * FROM cart WHERE user_id = ?`;
       const [rows] = await db.query(query, [userId]);
       return rows[0] || null;
@@ -56,8 +57,17 @@ const CartModel = {
   // Xóa khóa học khỏi giỏ hàng
   removeItemFromCart: async (cartId, courseId) => {
     try {
+      console.log('Checking removal for cartId:', cartId, 'courseId:', courseId); // Log để debug
+      const checkQuery = `SELECT * FROM cart_items WHERE cart_id = ? AND course_id = ?`;
+      const [existingItems] = await db.query(checkQuery, [cartId, courseId]);
+      if (!existingItems.length) {
+        console.log('No item found in cart_items for cartId:', cartId, 'courseId:', courseId);
+        throw new Error('Khóa học không có trong giỏ hàng');
+      }
+
       const query = `DELETE FROM cart_items WHERE cart_id = ? AND course_id = ?`;
       const [result] = await db.query(query, [cartId, courseId]);
+      console.log(`Removed item with cart_id ${cartId} and course_id ${courseId}, affected rows: ${result.affectedRows}`);
       return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Error removing item from cart: ${error.message}`);

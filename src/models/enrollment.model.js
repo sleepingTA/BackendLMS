@@ -1,112 +1,64 @@
 const db = require("../config/db");
 
-const PaymentModel = {
-  // Tạo thanh toán mới
-  createPayment: async (paymentData) => {
+const EnrollmentModel = {
+  // Lấy danh sách khóa học đã đăng ký của người dùng
+  getEnrollmentsByUser: async (userId) => {
     try {
-      const {
-        order_id,
-        payment_method,
-        amount,
-        status = "Pending",
-        transaction_id = null,
-        payment_date = null,
-      } = paymentData;
       const query = `
-        INSERT INTO payments (order_id, payment_method, amount, status, transaction_id, payment_date)
-        VALUES (?, ?, ?, ?, ?, ?)
+        SELECT e.id, e.user_id, e.course_id, e.enrolled_at, c.title, c.thumbnail_url, c.price, c.discounted_price
+        FROM enrollments e
+        JOIN courses c ON e.course_id = c.id
+        WHERE e.user_id = ? AND c.is_active = TRUE
       `;
-      const [result] = await db.query(query, [
-        order_id,
-        payment_method,
-        amount,
-        status,
-        transaction_id,
-        payment_date,
-      ]);
-      return result.insertId;
+      const [rows] = await db.query(query, [userId]);
+      return rows;
     } catch (error) {
-      throw new Error(`Error creating payment: ${error.message}`);
+      throw new Error(`Error fetching enrollments: ${error.message}`);
     }
   },
 
-  // Lấy thanh toán theo ID
-  findPaymentById: async (paymentId) => {
+  // Kiểm tra trạng thái đăng ký
+  checkEnrollment: async (userId, courseId) => {
     try {
-      const query = `SELECT * FROM payments WHERE id = ?`;
-      const [rows] = await db.query(query, [paymentId]);
-      return rows[0] || null;
-    } catch (error) {
-      throw new Error(`Error finding payment by ID: ${error.message}`);
-    }
-  },
-
-  // Lấy thanh toán theo đơn hàng
-  findPaymentByOrderId: async (orderId) => {
-    try {
-      const query = `SELECT * FROM payments WHERE order_id = ?`;
-      const [rows] = await db.query(query, [orderId]);
-      return rows[0] || null;
-    } catch (error) {
-      throw new Error(`Error finding payment by order ID: ${error.message}`);
-    }
-  },
-
-  // Lấy thanh toán theo mã giao dịch
-  findPaymentByTransactionId: async (transactionId) => {
-    try {
-      const query = `SELECT * FROM payments WHERE transaction_id = ?`;
-      const [rows] = await db.query(query, [transactionId]);
-      return rows[0] || null;
-    } catch (error) {
-      throw new Error(`Error finding payment by transaction ID: ${error.message}`);
-    }
-  },
-
-  // Cập nhật trạng thái thanh toán
-  updatePaymentStatus: async (paymentId, status) => {
-    try {
-      const query = `UPDATE payments SET status = ? WHERE id = ?`;
-      const [result] = await db.query(query, [status, paymentId]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error updating payment status: ${error.message}`);
-    }
-  },
-
-  // Cập nhật thanh toán (toàn bộ)
-  updatePayment: async (paymentId, paymentData) => {
-    try {
-      const { payment_method, amount, status, transaction_id, payment_date } = paymentData;
       const query = `
-        UPDATE payments 
-        SET payment_method = ?, amount = ?, status = ?, transaction_id = ?, payment_date = ?
-        WHERE id = ?
+        SELECT * FROM enrollments
+        WHERE user_id = ? AND course_id = ? AND EXISTS (
+          SELECT 1 FROM courses WHERE id = ? AND is_active = TRUE
+        )
       `;
-      const [result] = await db.query(query, [
-        payment_method,
-        amount,
-        status,
-        transaction_id,
-        payment_date,
-        paymentId,
-      ]);
-      return result.affectedRows > 0;
+      const [rows] = await db.query(query, [userId, courseId, courseId]);
+      return rows.length > 0 ? rows[0] : null;
     } catch (error) {
-      throw new Error(`Error updating payment: ${error.message}`);
+      throw new Error(`Error checking enrollment: ${error.message}`);
     }
   },
 
-  // Xóa thanh toán
-  deletePayment: async (paymentId) => {
+  // Tìm đăng ký theo ID
+  findEnrollmentById: async (enrollmentId) => {
     try {
-      const query = `DELETE FROM payments WHERE id = ?`;
-      const [result] = await db.query(query, [paymentId]);
+      const query = `
+        SELECT * FROM enrollments
+        WHERE id = ? AND EXISTS (
+          SELECT 1 FROM courses c JOIN enrollments e ON c.id = e.course_id WHERE e.id = ? AND c.is_active = TRUE
+        )
+      `;
+      const [rows] = await db.query(query, [enrollmentId, enrollmentId]);
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      throw new Error(`Error finding enrollment: ${error.message}`);
+    }
+  },
+
+  // Xóa đăng ký
+  deleteEnrollment: async (enrollmentId) => {
+    try {
+      const query = `DELETE FROM enrollments WHERE id = ?`;
+      const [result] = await db.query(query, [enrollmentId]);
       return result.affectedRows > 0;
     } catch (error) {
-      throw new Error(`Error deleting payment: ${error.message}`);
+      throw new Error(`Error deleting enrollment: ${error.message}`);
     }
   },
 };
 
-module.exports = PaymentModel;
+module.exports = EnrollmentModel;

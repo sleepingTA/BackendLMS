@@ -3,9 +3,10 @@ const CourseModel = require("../models/course.model");
 const EnrollmentModel = require("../models/enrollment.model");
 
 const CartController = {
-  // Lấy giỏ hàng của người dùng
+  // Lấy giỏ hàng
   getCart: async (req, res) => {
     try {
+      console.log('User ID from authMiddleware:', req.user.userId); // Log để debug
       const cart = await CartModel.findCartByUserId(req.user.userId);
       if (!cart) {
         return res.status(404).json({ message: "Giỏ hàng không tồn tại" });
@@ -24,23 +25,19 @@ const CartController = {
       if (!course_id) {
         return res.status(400).json({ message: "Thiếu ID khóa học" });
       }
-      // Kiểm tra khóa học tồn tại
       const course = await CourseModel.findCourseById(course_id);
       if (!course) {
         return res.status(404).json({ message: "Khóa học không tồn tại" });
       }
-      // Kiểm tra xem người dùng đã mua khóa học chưa
       const enrollment = await EnrollmentModel.checkEnrollment(req.user.userId, course_id);
       if (enrollment) {
         return res.status(400).json({ message: "Bạn đã mua khóa học này" });
       }
-      // Lấy hoặc tạo giỏ hàng
       let cart = await CartModel.findCartByUserId(req.user.userId);
       if (!cart) {
         const cartId = await CartModel.createCart(req.user.userId);
         cart = { id: cartId, user_id: req.user.userId };
       }
-      // Thêm khóa học vào giỏ hàng
       const success = await CartModel.addItemToCart(cart.id, course_id);
       if (!success) {
         return res.status(400).json({ message: "Khóa học đã có trong giỏ hàng" });
@@ -54,18 +51,24 @@ const CartController = {
   // Xóa khóa học khỏi giỏ hàng
   removeFromCart: async (req, res) => {
     try {
-      const { course_id } = req.params;
+      const { courseId } = req.params; // Sửa thành courseId để khớp với route
+      console.log('Received courseId from params:', courseId); // Log để debug
+      const parsedCourseId = parseInt(courseId, 10);
+      if (isNaN(parsedCourseId) || parsedCourseId <= 0) {
+        return res.status(400).json({ success: false, message: 'ID khóa học không hợp lệ' });
+      }
+      console.log('Parsed courseId:', parsedCourseId); // Log để debug
       const cart = await CartModel.findCartByUserId(req.user.userId);
       if (!cart) {
-        return res.status(404).json({ message: "Giỏ hàng không tồn tại" });
+        return res.status(404).json({ success: false, message: 'Giỏ hàng không tồn tại' });
       }
-      const success = await CartModel.removeItemFromCart(cart.id, course_id);
+      const success = await CartModel.removeItemFromCart(cart.id, parsedCourseId);
       if (!success) {
-        return res.status(404).json({ message: "Khóa học không có trong giỏ hàng" });
+        return res.status(404).json({ success: false, message: 'Khóa học không có trong giỏ hàng' });
       }
-      return res.status(200).json({ message: "Xóa khỏi giỏ hàng thành công" });
+      return res.status(200).json({ success: true, message: 'Xóa khỏi giỏ hàng thành công' });
     } catch (error) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({ success: false, message: error.message });
     }
   },
 
