@@ -1,13 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const PaymentController = require('../controllers/payment.controller');
-const { authMiddleware, roleMiddleware } = require('../middleware/auth.middleware');
+const PaymentController = require("../controllers/payment.controller");
+const { authMiddleware, roleMiddleware } = require("../middleware/auth.middleware");
 
-router.get('/payments', authMiddleware, PaymentController.getPayments);
-router.get('/payments/:paymentId', authMiddleware, PaymentController.getPaymentById);
-router.post('/payments', authMiddleware, PaymentController.createPayment);
-router.patch('/payments/:paymentId/status', authMiddleware, roleMiddleware(['Admin']), PaymentController.updatePaymentStatus);
-router.post('/payments/confirm', PaymentController.confirmPayment);
-router.delete('/payments/:paymentId', authMiddleware, PaymentController.cancelPayment);
+router.get("/", authMiddleware, PaymentController.getPayments);
+router.get('/:paymentId', authMiddleware, PaymentController.getPaymentById);
+router.post("/", authMiddleware, PaymentController.createPayment);
+router.post("/payos", authMiddleware, PaymentController.createPayOSPayment);
+router.post('/payos/webhook', PaymentController.handlePayOSWebhook);
+router.post('/payos/confirm-webhook', PaymentController.confirmWebhook); 
+router.patch("/:paymentId/status", authMiddleware, roleMiddleware(["Admin"]), PaymentController.updatePaymentStatus);
+router.post("/confirm", authMiddleware, PaymentController.confirmPayment);
+router.delete("/:paymentId", authMiddleware, PaymentController.cancelPayment);
+router.post('/payos/test-signature', PaymentController.testSignature);
+
 
 module.exports = router;

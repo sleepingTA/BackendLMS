@@ -1,6 +1,7 @@
 const db = require("../config/db");
 
 const EnrollmentModel = {
+
   // Lấy danh sách khóa học đã đăng ký của người dùng
   getEnrollmentsByUser: async (userId) => {
     try {

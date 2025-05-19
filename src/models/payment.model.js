@@ -1,104 +1,76 @@
 const db = require("../config/db");
 
 const PaymentModel = {
-  // Tạo thanh toán mới
-  createPayment: async (paymentData) => {
-    try {
-      const {
-        user_id,
-        cart_id,
-        payment_method,
-        amount,
-        status = "Pending",
-        transaction_id = null,
-        payment_date = null,
-      } = paymentData;
-      const query = `
-        INSERT INTO payments (user_id, cart_id, payment_method, amount, status, transaction_id, payment_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      const [result] = await db.query(query, [
-        user_id,
-        cart_id,
-        payment_method,
-        amount,
-        status,
-        transaction_id,
-        payment_date,
-      ]);
-      return result.insertId;
-    } catch (error) {
-      throw new Error(`Error creating payment: ${error.message}`);
-    }
+  getPaymentsByUserId: async (userId) => {
+    const query = `
+      SELECT id, cart_id, payment_method, amount, status, transaction_id, payment_date, payos_order_code, payos_checkout_url
+      FROM payments
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `;
+    const [rows] = await db.query(query, [userId]);
+    return rows;
   },
 
-  // Lấy thanh toán theo ID
   findPaymentById: async (paymentId) => {
-    try {
-      const query = `SELECT * FROM payments WHERE id = ?`;
-      const [rows] = await db.query(query, [paymentId]);
-      return rows[0] || null;
-    } catch (error) {
-      throw new Error(`Error finding payment by ID: ${error.message}`);
-    }
+    const query = `
+      SELECT id, user_id, cart_id, payment_method, amount, status, transaction_id, payment_date, payos_order_code, payos_checkout_url
+      FROM payments
+      WHERE id = ?
+    `;
+    const [rows] = await db.query(query, [paymentId]);
+    return rows[0];
   },
 
-  // Lấy thanh toán theo cart_id
-  findPaymentByCartId: async (cartId) => {
-    try {
-      const query = `SELECT * FROM payments WHERE cart_id = ?`;
-      const [rows] = await db.query(query, [cartId]);
-      return rows[0] || null;
-    } catch (error) {
-      throw new Error(`Error finding payment by cart ID: ${error.message}`);
-    }
+  findPaymentByOrderCode: async (orderCode) => {
+    const query = `
+      SELECT id, user_id, cart_id, payment_method, amount, status, transaction_id, payment_date, payos_order_code, payos_checkout_url
+      FROM payments
+      WHERE payos_order_code = ?
+    `;
+    const [rows] = await db.query(query, [orderCode]);
+    return rows[0];
   },
 
-  // Cập nhật trạng thái thanh toán
-  updatePaymentStatus: async (paymentId, status) => {
-    try {
-      const query = `UPDATE payments SET status = ? WHERE id = ?`;
-      const [result] = await db.query(query, [status, paymentId]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error updating payment status: ${error.message}`);
-    }
+  createPayment: async (paymentData) => {
+    const query = `
+      INSERT INTO payments (user_id, cart_id, payment_method, amount, status, payos_order_code, payos_checkout_url)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      paymentData.user_id,
+      paymentData.cart_id,
+      paymentData.payment_method,
+      paymentData.amount,
+      paymentData.status,
+      paymentData.payos_order_code,
+      paymentData.payos_checkout_url,
+    ];
+    const [result] = await db.query(query, values);
+    return result.insertId;
   },
 
-  // Cập nhật thanh toán (toàn bộ)
   updatePayment: async (paymentId, paymentData) => {
-    try {
-      const { user_id, cart_id, payment_method, amount, status, transaction_id, payment_date } = paymentData;
-      const query = `
-        UPDATE payments 
-        SET user_id = ?, cart_id = ?, payment_method = ?, amount = ?, status = ?, transaction_id = ?, payment_date = ?
-        WHERE id = ?
-      `;
-      const [result] = await db.query(query, [
-        user_id,
-        cart_id,
-        payment_method,
-        amount,
-        status,
-        transaction_id,
-        payment_date,
-        paymentId,
-      ]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error updating payment: ${error.message}`);
-    }
-  },
-
-  // Xóa thanh toán
-  deletePayment: async (paymentId) => {
-    try {
-      const query = `DELETE FROM payments WHERE id = ?`;
-      const [result] = await db.query(query, [paymentId]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error deleting payment: ${error.message}`);
-    }
+    const query = `
+      UPDATE payments
+      SET user_id = ?, cart_id = ?, payment_method = ?, amount = ?, status = ?, 
+          transaction_id = ?, payment_date = ?, payos_order_code = ?, payos_checkout_url = ?
+      WHERE id = ?
+    `;
+    const values = [
+      paymentData.user_id,
+      paymentData.cart_id,
+      paymentData.payment_method,
+      paymentData.amount,
+      paymentData.status,
+      paymentData.transaction_id,
+      paymentData.payment_date,
+      paymentData.payos_order_code,
+      paymentData.payos_checkout_url,
+      paymentId,
+    ];
+    const [result] = await db.query(query, values);
+    return result.affectedRows > 0;
   },
 };
 

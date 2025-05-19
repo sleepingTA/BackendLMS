@@ -4,14 +4,14 @@ const CourseModel = require("../models/course.model");
 const EnrollmentController = {
   // Lấy danh sách khóa học đã đăng ký của người dùng
   getUserEnrollments: async (req, res) => {
-    try {
-      const { userId } = req.user;
-      const enrollments = await EnrollmentModel.getEnrollmentsByUser(userId);
-      return res.status(200).json(enrollments);
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  },
+      try {
+        const { userId } = req.user;
+        const enrollments = await EnrollmentModel.getEnrollmentsByUser(userId);
+        return res.status(200).json({ data: enrollments });
+      } catch (error) {
+        return res.status(500).json({ message: error.message });
+      }
+    },
 
   // Kiểm tra trạng thái đăng ký
   checkEnrollment: async (req, res) => {
