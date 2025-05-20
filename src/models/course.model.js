@@ -166,9 +166,9 @@ const CourseModel = {
         LEFT JOIN 
             lessons l ON c.id = l.course_id
         LEFT JOIN 
-            course_videos v ON l.id = v.lesson_id
+            videos v ON l.id = v.lesson_id
         LEFT JOIN 
-            course_materials m ON l.id = m.lesson_id
+            materials m ON l.id = m.lesson_id
         WHERE 
             c.id = ?
         ORDER BY 
