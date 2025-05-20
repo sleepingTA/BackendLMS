@@ -45,14 +45,42 @@ const UserModel = {
     }
   },
 
-  // Cập nhật thông tin người dùng (toàn bộ)
-  update: async (id, email, password, full_name, role, avatar) => {
+update: async (id, updateData) => {
     try {
-      const sql = `UPDATE users SET email = ?, password = ?, full_name = ?, role = ?, avatar = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [email, password, full_name, role, avatar, id]);
+      const fields = [];
+      const values = [];
+
+      if (updateData.email !== undefined) {
+        fields.push('email = ?');
+        values.push(updateData.email);
+      }
+      if (updateData.password !== undefined) {
+        fields.push('password = ?');
+        values.push(updateData.password);
+      }
+      if (updateData.full_name !== undefined) {
+        fields.push('full_name = ?');
+        values.push(updateData.full_name);
+      }
+      if (updateData.role !== undefined) {
+        fields.push('role = ?');
+        values.push(updateData.role);
+      }
+      if (updateData.avatar !== undefined) {
+        fields.push('avatar = ?');
+        values.push(updateData.avatar);
+      }
+
+      if (fields.length === 0) {
+        return false;
+      }
+
+      const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+      values.push(id);
+      const [result] = await db.execute(sql, values);
       return result.affectedRows > 0;
     } catch (error) {
-      throw new Error(`Error updating user: ${error.message}`);
+      throw new Error(`Lỗi cập nhật người dùng: ${error.message}`);
     }
   },
 

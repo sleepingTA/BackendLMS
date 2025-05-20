@@ -77,24 +77,56 @@ const UserController = {
     }
   },
 
-  // Cập nhật thông tin người dùng
-  updateUser: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { email, password, full_name, role, avatar } = req.body;
-      if (req.user.userId !== parseInt(id) && req.user.role !== 'Admin') {
-        return res.status(403).json({ message: 'Không có quyền cập nhật' });
-      }
-      const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
-      const success = await UserModel.update(id, email, hashedPassword || undefined, full_name, role || 'User', avatar);
-      if (!success) {
-        return res.status(404).json({ message: 'Người dùng không tồn tại' });
-      }
-      return res.status(200).json({ message: 'Cập nhật thành công' });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
+updateUser: async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, password, full_name, role, avatar } = req.body;
+    if (req.user.userId !== parseInt(id) && req.user.role !== 'Admin') {
+      return res.status(403).json({ message: 'Không có quyền cập nhật' });
     }
-  },
+    const updateData = {};
+    if (email !== undefined) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ message: 'Email không hợp lệ' });
+      }
+      const existingUser = await UserModel.findByEmail(email);
+      if (existingUser && existingUser.id !== parseInt(id)) {
+        return res.status(400).json({ message: 'Email đã được sử dụng' });
+      }
+      updateData.email = email;
+    }
+    if (password !== undefined) {
+      if (password.length < 6) {
+        return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+      }
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+    if (full_name !== undefined) {
+      if (!full_name.trim()) {
+        return res.status(400).json({ message: 'Họ tên không được để trống' });
+      }
+      updateData.full_name = full_name;
+    }
+    if (role !== undefined) {
+      if (!['User', 'Admin'].includes(role)) {
+        return res.status(400).json({ message: 'Vai trò không hợp lệ' });
+      }
+      updateData.role = role;
+    }
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'Không có dữ liệu để cập nhật' });
+    }
+    const success = await UserModel.update(id, updateData);
+    if (!success) {
+      return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+    return res.status(200).json({ message: 'Cập nhật thành công' });
+  } catch (error) {
+    console.error('Lỗi trong updateUser:', error);
+    return res.status(500).json({ message: error.message || 'Lỗi server' });
+  }
+},
 
   // Cập nhật avatar
   updateAvatar: async (req, res) => {

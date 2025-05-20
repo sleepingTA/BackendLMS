@@ -14,5 +14,7 @@ logs/
 *.jpeg
 *.png
 *.mp4 
-*.json
+
 *.webp
+elearningsa-bca0b-firebase-adminsdk.json
+package-lock.json
