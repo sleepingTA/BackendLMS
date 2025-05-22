@@ -78,7 +78,6 @@ const LessonModel = {
     }
   },
 
-  // Cập nhật bài học
   updateLesson: async (lessonId, lessonData) => {
     try {
       const { title, description, order_number } = lessonData;
@@ -92,7 +91,7 @@ const LessonModel = {
     }
   },
 
-  // Xóa bài học
+  
   deleteLesson: async (lessonId) => {
     try {
       await db.query(`DELETE FROM videos WHERE lesson_id = ?`, [lessonId]);
@@ -104,13 +103,12 @@ const LessonModel = {
     }
   },
 
-  // Thêm video
   addVideo: async (videoData) => {
     try {
-      const { lesson_id, title, description, video_url, order_number, duration, is_preview } = videoData;
+      const { lesson_id, title, description, video_url, order_number, is_preview } = videoData;
       const [result] = await db.query(
-        `INSERT INTO videos (lesson_id, title, description, video_url, order_number, duration, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [lesson_id, title, description, video_url, order_number, duration, is_preview]
+        `INSERT INTO videos (lesson_id, title, description, video_url, order_number, is_preview) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [lesson_id, title, description, video_url, order_number, is_preview]
       );
       return result.insertId;
     } catch (error) {
@@ -118,13 +116,13 @@ const LessonModel = {
     }
   },
 
-  // Cập nhật video
+ 
   updateVideo: async (videoId, videoData) => {
     try {
-      const { title, description, video_url, order_number, duration, is_preview } = videoData;
+      const { title, description, video_url, order_number, is_preview } = videoData;
       const [result] = await db.query(
-        `UPDATE videos SET title = ?, description = ?, video_url = ?, order_number = ?, duration = ?, is_preview = ? WHERE id = ?`,
-        [title, description, video_url, order_number, duration, is_preview, videoId]
+        `UPDATE videos SET title = ?, description = ?, video_url = ?, order_number = ?, is_preview = ? WHERE id = ?`,
+        [title, description, video_url, order_number, is_preview, videoId]
       );
       return result.affectedRows > 0;
     } catch (error) {

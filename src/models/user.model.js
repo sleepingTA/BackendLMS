@@ -1,68 +1,73 @@
-const db = require("../config/db");
+const db = require('../config/db');
+const bcrypt = require('bcryptjs');
 
 const UserModel = {
-  // Tạo người dùng mới
-  create: async (email, password, full_name, role = "User", avatar = null) => {
-    try {
-      const sql = `INSERT INTO users (email, password, full_name, role, avatar) VALUES (?, ?, ?, ?, ?)`;
-      const [result] = await db.execute(sql, [email, password, full_name, role, avatar]);
-      return result;
-    } catch (error) {
-      throw new Error(`Error creating user: ${error.message}`);
-    }
-  },
-
   // Tìm người dùng theo email
   findByEmail: async (email) => {
     try {
-      const sql = `SELECT * FROM users WHERE email = ?`;
-      const [rows] = await db.execute(sql, [email]);
-      return rows[0] || null;
+      const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+      return rows[0];
     } catch (error) {
-      throw new Error(`Error finding user by email: ${error.message}`);
+      console.error('Error in findByEmail:', error);
+      throw new Error(`Lỗi khi tìm người dùng theo email: ${error.message}`);
     }
   },
 
   // Tìm người dùng theo ID
   findById: async (id) => {
     try {
-      const sql = `SELECT * FROM users WHERE id = ?`;
-      const [rows] = await db.execute(sql, [id]);
-      return rows[0] || null;
+      const [rows] = await db.execute('SELECT * FROM users WHERE id = ?', [id]);
+      return rows[0];
     } catch (error) {
-      throw new Error(`Error finding user by ID: ${error.message}`);
+      console.error('Error in findById:', error);
+      throw new Error(`Lỗi khi tìm người dùng theo ID: ${error.message}`);
     }
   },
 
   // Lấy tất cả người dùng
   getAll: async () => {
     try {
-      const sql = `SELECT * FROM users`;
-      const [rows] = await db.execute(sql);
+      const [rows] = await db.execute('SELECT id, email, full_name, role, avatar, is_active, email_verified, created_at, updated_at FROM users');
       return rows;
     } catch (error) {
-      throw new Error(`Error fetching all users: ${error.message}`);
+      console.error('Error in getAll:', error);
+      throw new Error(`Lỗi khi lấy danh sách người dùng: ${error.message}`);
     }
   },
 
-update: async (id, updateData) => {
+  // Tạo người dùng mới
+  create: async (email, password, full_name, role = 'User', avatar = null, verificationToken = null) => {
+    try {
+      const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+      const [result] = await db.execute(
+        'INSERT INTO users (email, password, full_name, role, avatar, verification_token, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [email, hashedPassword, full_name, role, avatar, verificationToken, false]
+      );
+      return { insertId: result.insertId };
+    } catch (error) {
+      console.error('Error in create:', error);
+      throw new Error(`Lỗi khi tạo người dùng: ${error.message}`);
+    }
+  },
+
+  // Cập nhật thông tin người dùng
+  update: async (id, updateData) => {
     try {
       const fields = [];
       const values = [];
-
-      if (updateData.email !== undefined) {
+      if (updateData.email) {
         fields.push('email = ?');
         values.push(updateData.email);
       }
-      if (updateData.password !== undefined) {
+      if (updateData.password) {
         fields.push('password = ?');
-        values.push(updateData.password);
+        values.push(await bcrypt.hash(updateData.password, 10));
       }
-      if (updateData.full_name !== undefined) {
+      if (updateData.full_name) {
         fields.push('full_name = ?');
         values.push(updateData.full_name);
       }
-      if (updateData.role !== undefined) {
+      if (updateData.role) {
         fields.push('role = ?');
         values.push(updateData.role);
       }
@@ -70,89 +75,118 @@ update: async (id, updateData) => {
         fields.push('avatar = ?');
         values.push(updateData.avatar);
       }
-
-      if (fields.length === 0) {
-        return false;
+      if (updateData.is_active !== undefined) {
+        fields.push('is_active = ?');
+        values.push(updateData.is_active);
       }
 
-      const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+      if (fields.length === 0) {
+        throw new Error('Không có dữ liệu để cập nhật');
+      }
+
       values.push(id);
-      const [result] = await db.execute(sql, values);
+      const query = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+      const [result] = await db.execute(query, values);
       return result.affectedRows > 0;
     } catch (error) {
-      throw new Error(`Lỗi cập nhật người dùng: ${error.message}`);
+      console.error('Error in update:', error);
+      throw new Error(`Lỗi khi cập nhật người dùng: ${error.message}`);
     }
   },
 
-  // Cập nhật từng trường riêng lẻ
-  updateAvatar: async (id, avatar) => {
+  // Cập nhật avatar
+  updateAvatar: async (id, avatarPath) => {
     try {
-      const sql = `UPDATE users SET avatar = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [avatar, id]);
+      const [result] = await db.execute(
+        'UPDATE users SET avatar = ? WHERE id = ?',
+        [avatarPath, id]
+      );
       return result.affectedRows > 0;
     } catch (error) {
-      throw new Error(`Error updating avatar: ${error.message}`);
-    }
-  },
-
-  updateEmailVerified: async (id, email_verified) => {
-    try {
-      const sql = `UPDATE users SET email_verified = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [email_verified, id]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error updating email verification: ${error.message}`);
-    }
-  },
-
-  setVerificationToken: async (id, verification_token) => {
-    try {
-      const sql = `UPDATE users SET verification_token = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [verification_token, id]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error setting verification token: ${error.message}`);
-    }
-  },
-
-  setResetPasswordToken: async (id, reset_password_token, reset_password_expires) => {
-    try {
-      const sql = `UPDATE users SET reset_password_token = ?, reset_password_expires = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [reset_password_token, reset_password_expires, id]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error setting reset password token: ${error.message}`);
-    }
-  },
-
-  setRefreshToken: async (id, refresh_token) => {
-    try {
-      const sql = `UPDATE users SET refresh_token = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [refresh_token, id]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error setting refresh token: ${error.message}`);
-    }
-  },
-
-  setActiveStatus: async (id, is_active) => {
-    try {
-      const sql = `UPDATE users SET is_active = ? WHERE id = ?`;
-      const [result] = await db.execute(sql, [is_active, id]);
-      return result.affectedRows > 0;
-    } catch (error) {
-      throw new Error(`Error setting active status: ${error.message}`);
+      console.error('Error in updateAvatar:', error);
+      throw new Error(`Lỗi khi cập nhật avatar: ${error.message}`);
     }
   },
 
   // Xóa người dùng
   delete: async (id) => {
     try {
-      const sql = `DELETE FROM users WHERE id = ?`;
-      const [result] = await db.execute(sql, [id]);
+      const [result] = await db.execute('DELETE FROM users WHERE id = ?', [id]);
       return result.affectedRows > 0;
     } catch (error) {
-      throw new Error(`Error deleting user: ${error.message}`);
+      console.error('Error in delete:', error);
+      throw new Error(`Lỗi khi xóa người dùng: ${error.message}`);
+    }
+  },
+
+  // Cập nhật refresh token
+  setRefreshToken: async (id, token) => {
+    try {
+      const [result] = await db.execute(
+        'UPDATE users SET refresh_token = ? WHERE id = ?',
+        [token, id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in setRefreshToken:', error);
+      throw new Error(`Lỗi khi cập nhật refresh token: ${error.message}`);
+    }
+  },
+
+  // Cập nhật verification token
+  setVerificationToken: async (id, token) => {
+    try {
+      const [result] = await db.execute(
+        'UPDATE users SET verification_token = ? WHERE id = ?',
+        [token, id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in setVerificationToken:', error);
+      throw new Error(`Lỗi khi cập nhật verification token: ${error.message}`);
+    }
+  },
+
+  // Cập nhật reset token
+  setResetToken: async (id, token, expires) => {
+    try {
+      const [result] = await db.execute(
+        'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+        [token, expires, id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in setResetToken:', error);
+      throw new Error(`Lỗi khi cập nhật reset token: ${error.message}`);
+    }
+  },
+
+  // Tìm người dùng theo reset token
+  findByResetToken: async (token) => {
+    try {
+      const [rows] = await db.execute(
+        'SELECT * FROM users WHERE reset_token = ?',
+        [token]
+      );
+      return rows[0];
+    } catch (error) {
+      console.error('Error in findByResetToken:', error);
+      throw new Error(`Lỗi khi tìm người dùng theo reset token: ${error.message}`);
+    }
+  },
+
+  // Cập nhật mật khẩu
+  updatePassword: async (id, password) => {
+    try {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const [result] = await db.execute(
+        'UPDATE users SET password = ? WHERE id = ?',
+        [hashedPassword, id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error in updatePassword:', error);
+      throw new Error(`Lỗi khi cập nhật mật khẩu: ${error.message}`);
     }
   },
 };

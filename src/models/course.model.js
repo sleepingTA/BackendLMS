@@ -76,7 +76,7 @@ const CourseModel = {
     }
   },
 
-  // Tăng lượt xem
+
   incrementViews: async (courseId) => {
     try {
       const query = `UPDATE courses SET views = views + 1 WHERE id = ?`;
@@ -87,7 +87,7 @@ const CourseModel = {
     }
   },
 
-  // Cập nhật số học viên
+ 
   updateTotalStudents: async (courseId, total_students) => {
     try {
       const query = `UPDATE courses SET total_students = ? WHERE id = ?`;
@@ -98,7 +98,7 @@ const CourseModel = {
     }
   },
 
-  // Cập nhật đánh giá
+ 
   updateRating: async (courseId, rating, total_ratings) => {
     try {
       const query = `UPDATE courses SET rating = ?, total_ratings = ? WHERE id = ?`;
@@ -156,7 +156,7 @@ const CourseModel = {
             v.id AS video_id,
             v.title AS video_title,
             v.video_url,
-            v.duration,
+           
             m.id AS material_id,
             m.title AS material_title,
             m.file_url,
